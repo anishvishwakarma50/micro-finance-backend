@@ -15,7 +15,7 @@ const checkRole = require('../middlewares/role.middleware');
  * @swagger
  * /api/loans:
  *   post:
- *     summary: Create a new loan
+ *     summary: Create a new loan (Admin only)
  *     tags:
  *       - Loan
  *     security:
@@ -32,6 +32,7 @@ const checkRole = require('../middlewares/role.middleware');
  *               - durationMonths
  *               - interestRate
  *               - startDate
+ *               - frequency
  *             properties:
  *               customerId:
  *                 type: integer
@@ -44,11 +45,16 @@ const checkRole = require('../middlewares/role.middleware');
  *               startDate:
  *                 type: string
  *                 format: date
+ *               frequency:
+ *                 type: string
+ *                 enum: [weekly, monthly]
  *     responses:
  *       201:
  *         description: Loan created successfully
  *       400:
  *         description: Missing or invalid fields
+ *       403:
+ *         description: Unauthorized (only admin can create loans)
  *       404:
  *         description: Customer not found
  *       500:
@@ -59,7 +65,7 @@ const checkRole = require('../middlewares/role.middleware');
  * @swagger
  * /api/loans:
  *   get:
- *     summary: Get all loans
+ *     summary: Get all loans (Admin or Agent)
  *     tags:
  *       - Loan
  *     security:
@@ -89,9 +95,17 @@ const checkRole = require('../middlewares/role.middleware');
  *                         type: integer
  *                       interestRate:
  *                         type: number
+ *                       frequency:
+ *                         type: string
  *                       startDate:
  *                         type: string
  *                         format: date
+ *                       numInstallments:
+ *                         type: integer
+ *                       finalAmount:
+ *                         type: number
+ *                       amountPaid:
+ *                         type: number
  *                       Customer:
  *                         type: object
  *                         properties:
@@ -105,7 +119,10 @@ const checkRole = require('../middlewares/role.middleware');
  *         description: Internal server error
  */
 
+// GET all loans - accessible by admin and agent
 router.get('/', verifyToken, checkRole('admin', 'agent'), loanController.getAll);
-router.post('/', verifyToken, checkRole('admin', 'agent'), loanController.create);
+
+// POST a loan - only admin can create loan
+router.post('/', verifyToken, checkRole('admin'), loanController.create);
 
 module.exports = router;

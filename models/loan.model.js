@@ -38,9 +38,25 @@ module.exports = (sequelize) => {
         type: DataTypes.FLOAT,
         allowNull: false,
       },
+      frequency: {
+        type: DataTypes.ENUM('weekly', 'monthly'),
+        allowNull: false,
+      },
+      numberOfInstallments: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
       startDate: {
         type: DataTypes.DATEONLY,
         allowNull: false,
+      },
+      finalAmount: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+      },
+      amountPaid: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0,
       },
     },
     {

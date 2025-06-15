@@ -1,36 +1,63 @@
 const db = require('../models');
 const Loan = db.Loan;
 const Customer = db.Customer;
+const Admin = db.Admin;
 
-// Only admin can create loan for customers under them
+// 🔐 Util: Determine adminId based on logged-in user
+const getAdminIdFromUser = async (user) => {
+  if (user.role === 'admin') return user.id;
+
+  if (user.role === 'agent') {
+    const admin = await Admin.findOne({ where: { acode: user.acode, role: 'admin' } });
+    if (!admin) throw new Error('Invalid agent: linked admin not found');
+    return admin.id;
+  }
+
+  throw new Error('Unauthorized role');
+};
+
+// ✅ Create Loan (Admin Only)
 exports.create = async (req, res) => {
   try {
-    const { customerId, amount, durationMonths, interestRate, startDate } = req.body;
+    const { customerId, amount, durationMonths, interestRate, startDate, frequency } = req.body;
 
-    // Validate input
-    if (!customerId || !amount || !durationMonths || !interestRate || !startDate) {
+    if (!customerId || !amount || !durationMonths || !interestRate || !startDate || !frequency) {
       return res.status(400).json({ message: 'All fields are required.' });
     }
 
-    // Check role
     if (req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Only admin can create loans.' });
+      return res.status(403).json({ message: 'Only admins can create loans.' });
     }
 
-    // Check if customer exists under this admin
+    // 🔍 Verify customer belongs to the admin
     const customer = await Customer.findOne({
-      where: {
-        id: customerId,
-        adminId: req.user.id,
-      },
+      where: { id: customerId, adminId: req.user.id },
     });
 
     if (!customer) {
       return res.status(404).json({ message: 'Customer not found or does not belong to this admin.' });
     }
 
-    // Create loan
-    const loan = await Loan.create({ customerId, amount, durationMonths, interestRate, startDate });
+    // 📊 Calculate numberOfInstallments and finalAmount
+    const weeksPerMonth = 4;
+    const numberOfInstallments = frequency === 'weekly'
+      ? durationMonths * weeksPerMonth
+      : durationMonths;
+
+    const interestAmount = (amount * interestRate * durationMonths) / 1200;
+    const finalAmount = amount + interestAmount;
+
+    const loan = await Loan.create({
+      customerId,
+      amount,
+      durationMonths,
+      interestRate,
+      startDate,
+      frequency,
+      numberOfInstallments,
+      finalAmount,
+      amountPaid: 0, // initialize
+    });
 
     res.status(201).json({
       message: 'Loan created successfully.',
@@ -41,29 +68,7 @@ exports.create = async (req, res) => {
   }
 };
 
-const getAdminIdFromUser = async (user) => {
-  if (user.role === 'admin') {
-    return user.id;
-  }
-
-  if (user.role === 'agent') {
-    const admin = await Admin.findOne({
-      where: {
-        acode: user.acode,
-        role: 'admin',
-      },
-    });
-
-    if (!admin) {
-      throw new Error('Invalid agent: linked admin not found');
-    }
-
-    return admin.id;
-  }
-
-  throw new Error('Invalid role');
-};
-
+// ✅ Get All Loans (Admin or Agent)
 exports.getAll = async (req, res) => {
   try {
     const adminId = await getAdminIdFromUser(req.user);
@@ -72,9 +77,7 @@ exports.getAll = async (req, res) => {
       include: {
         model: Customer,
         attributes: ['id', 'name', 'phone'],
-        where: {
-          adminId,
-        },
+        where: { adminId },
       },
     });
 

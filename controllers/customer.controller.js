@@ -52,10 +52,11 @@ exports.create = async (req, res) => {
 
 exports.getAllByAdminCode = async (req, res) => {
   try {
-    const { acode } = req.query;
+    const { acode, role } = req.user;
 
-    if (!acode) {
-      return res.status(400).json({ message: 'Admin code (acode) is required' });
+    // Ensure only agent or admin with acode can access
+    if (!acode || !['admin', 'agent'].includes(role)) {
+      return res.status(400).json({ message: 'Unauthorized access or missing admin code in token' });
     }
 
     // Find admin by acode and role = admin
@@ -70,6 +71,7 @@ exports.getAllByAdminCode = async (req, res) => {
       return res.status(404).json({ message: 'Admin not found with this code' });
     }
 
+    // Fetch customers of the matched admin
     const customers = await Customer.findAll({
       where: { adminId: admin.id },
     });

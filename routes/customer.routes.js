@@ -72,26 +72,46 @@ const checkRole = require('../middlewares/role.middleware');
  * @swagger
  * /api/customers:
  *   get:
- *     summary: Get all customers under a specific admin using acode
+ *     summary: Get all customers under the admin using JWT token
  *     tags:
  *       - Customer
- *     parameters:
- *       - in: query
- *         name: acode
- *         required: true
- *         description: 8-character alphanumeric code of the admin
- *         schema:
- *           type: string
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Customers list fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 adminId:
+ *                   type: integer
+ *                 total:
+ *                   type: integer
+ *                 customers:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       name:
+ *                         type: string
+ *                       phone:
+ *                         type: string
+ *                       address:
+ *                         type: string
+ *                       adminId:
+ *                         type: integer
  *       400:
- *         description: acode is required
+ *         description: Unauthorized access or missing admin code
  *       404:
  *         description: Admin not found
  *       500:
  *         description: Server error
  */
+
 
 
 router.get('/', verifyToken, checkRole('admin', 'agent'), customerController.getAllByAdminCode);

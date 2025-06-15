@@ -21,11 +21,11 @@ module.exports = (sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
-      paidAmount: {
+      amount: {
         type: DataTypes.FLOAT,
         allowNull: false,
       },
-      paidDate: {
+      paymentDate: {
         type: DataTypes.DATEONLY,
         allowNull: false,
       },
